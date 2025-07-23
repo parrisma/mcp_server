@@ -18,11 +18,18 @@ services:
       - "--tracing.servicename=traefik"
       - "--providers.docker.defaultrule=Host(`{{ .Name }}.test`)"
       - "--tracing.jaeger.localAgentHostPort=jaeger:6831"
+      - "--ping=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - traefik_logs:/var/log/traefik
     networks:
       - proxy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     deploy:
       placement:
         constraints: [node.role == manager]
@@ -44,6 +51,12 @@ services:
       - postgresql_data:/var/lib/postgresql/data
     networks:
       - home-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     deploy:
       placement:
         constraints: [node.role == manager]
@@ -69,6 +82,12 @@ services:
     networks:
       - proxy
       - home-net
+    healthcheck:
+      test: ["CMD", "/opt/keycloak/bin/kc.sh", "--help"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
     deploy:
       placement:
         constraints: [node.role == manager]
@@ -110,6 +129,12 @@ services:
         traefik.http.routers.openwebui-secure.service: openwebui
         traefik.http.services.openwebui.loadbalancer.server.port: "8080"
         traefik.docker.network: proxy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - proxy
       - home-net
@@ -146,6 +171,12 @@ services:
         traefik.http.routers.portainer-secure.service: portainer
         traefik.http.services.portainer.loadbalancer.server.port: "9000"
         traefik.docker.network: proxy
+    healthcheck:
+      test: ["CMD", "/portainer", "--help"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
     networks:
       - proxy
     volumes:
@@ -162,6 +193,12 @@ services:
       - "9123:9123"
     environment:
       - MCP_SERVER=1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9123/mcp || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 90s
     networks:
       - home-net
 

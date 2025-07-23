@@ -169,9 +169,44 @@ class MCPClient:
             await self._streams_context.__aexit__(None, None, None)
 
 
+async def health_check(client, server_url):
+    """Run a quick health check for Docker health monitoring"""
+    try:
+        await client.connect_to_streamable_http_server(server_url)
+        
+        # Quick test: just list tools to verify server is responding
+        tools_response = await client.list_tools()
+        tool_names = [tool.name for tool in tools_response.tools]
+        
+        # Verify expected tools are available
+        if "put_key_value" not in tool_names or "get_value_by_key" not in tool_names:
+            return False
+            
+        # Quick functional test: store and retrieve a value
+        await client.call_tool(
+            "put_key_value",
+            {"key": "health_check", "value": "ok", "group": "health"}
+        )
+        
+        get_result = await client.call_tool(
+            "get_value_by_key",
+            {"key": "health_check", "group": "health"}
+        )
+        
+        # Verify the result
+        get_text = client._extract_text_content(get_result)
+        get_data = json.loads(get_text)
+        
+        return get_data["result"] == "ok"
+        
+    except Exception:
+        return False
+
+
 async def main():
     """Main function to run the MCP client"""
     import os
+    import sys
     
     parser = argparse.ArgumentParser(description="Run MCP Streamable HTTP Client")
     
@@ -184,20 +219,35 @@ async def main():
         help="MCP server URL"
     )
     
+    parser.add_argument(
+        "--health-check",
+        action="store_true",
+        help="Run health check mode for Docker health monitoring"
+    )
+    
     args = parser.parse_args()
     
     client = MCPClient()
 
     try:
-        print(f"Connecting to MCP server at {args.server_url}...")
-        await client.connect_to_streamable_http_server(args.server_url)
-        print("Connected successfully!")
+        if args.health_check:
+            # Health check mode - minimal output, exit codes for Docker
+            success = await health_check(client, args.server_url)
+            sys.exit(0 if success else 1)
+        else:
+            # Normal test mode
+            print(f"Connecting to MCP server at {args.server_url}...")
+            await client.connect_to_streamable_http_server(args.server_url)
+            print("Connected successfully!")
 
-        await client.run_tests()
+            await client.run_tests()
     except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
+        if args.health_check:
+            sys.exit(1)
+        else:
+            print(f"Error: {e}")
+            import traceback
+            traceback.print_exc()
     finally:
         await client.cleanup()
 
