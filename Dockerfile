@@ -35,7 +35,8 @@ RUN pip install --no-cache-dir \
     pytest \
     fastapi \
     uvicorn \
-    pyjwt
+    pyjwt \
+    mcpo
 
 # Set working directory
 WORKDIR /app

@@ -60,6 +60,8 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
+    depends_on:
+      - traefik
 
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.3
@@ -107,6 +109,8 @@ services:
         traefik.http.routers.keycloak-secure.service: keycloak
         traefik.http.services.keycloak.loadbalancer.server.port: "8080" # Keycloak's internal HTTP port
         traefik.docker.network: proxy
+    depends_on:
+      - traefik
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:git-5eca495-cuda
@@ -147,6 +151,11 @@ services:
       - OPENID_PROVIDER_URL=http://keycloak:8080/realms/openwebui/.well-known/openid-configuration
       - OAUTH_PROVIDER_NAME=Keycloak
       - OPENID_REDIRECT_URI=https://openwebui.test/oauth/oidc/callback
+    depends_on:
+      - traefik
+      - keycloak
+      - python-mcp
+      - python-mcpo
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -182,6 +191,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+    depends_on:
+      - traefik
 
   python-mcp:
     image: python-mcp:latest
@@ -201,6 +212,33 @@ services:
       start_period: 90s
     networks:
       - home-net
+    depends_on:
+      - traefik
+
+  python-mcpo:
+    image: python-mcp:latest
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "8123:8123"
+    environment:
+      - MCPO_PROXY=true
+      - MCPO_HOST=0.0.0.0
+      - MCPO_PORT=8123
+      - MCPO_SERVER_TYPE=streamable_http
+      - MCPO_TARGET_URL=http://python-mcp:9123/mcp
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8123/docs || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 90s
+    networks:
+      - home-net
+    depends_on:
+      - python-mcp
 
 networks:
   proxy:
