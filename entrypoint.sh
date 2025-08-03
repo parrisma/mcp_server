@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Ensure Python output is not buffered (for immediate log visibility)
+export PYTHONUNBUFFERED=1
+
 # Function to log with timestamp
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -14,15 +17,19 @@ log "  MCPO_HOST=${MCPO_HOST:-0.0.0.0}"
 log "  MCPO_PORT=${MCPO_PORT:-8123}"
 log "  MCPO_SERVER_TYPE=${MCPO_SERVER_TYPE:-streamable-http}"
 log "  MCPO_TARGET_URL=${MCPO_TARGET_URL:-not set}"
+log "  LITELLM_PROXY=${LITELLM_PROXY:-not set}"
+log "  LITELLM_HOST=${LITELLM_HOST:-0.0.0.0}"
+log "  LITELLM_PORT=${LITELLM_PORT:-4000}"
+log "  LITELLM_CONFIG=${LITELLM_CONFIG:-/app/litellm-config.yaml}"
 
 if [ "$MCP_SERVER" = "1" ] || [ "$MCP_SERVER" = "true" ]; then
     log "Starting MCP Server..."
-    log "Executing: python ./mcp_server/server.py"
-    exec python ./mcp_server/server.py
+    log "Executing: python -u ./mcp_server/server.py"
+    exec python -u ./mcp_server/server.py
 elif [ "$MCP_TEST" = "1" ] || [ "$MCP_TEST" = "true" ]; then
     log "Running MCP Test Client..."
-    log "Executing: python ./mcp_server/mcp_test_client.py"
-    exec python ./mcp_server/mcp_test_client.py
+    log "Executing: python -u ./mcp_server/mcp_test_client.py"
+    exec python -u ./mcp_server/mcp_test_client.py
 elif [ "$MCPO_PROXY" = "1" ] || [ "$MCPO_PROXY" = "true" ]; then
     log "Starting MCPO Proxy Server..."
     
@@ -56,6 +63,35 @@ elif [ "$MCPO_PROXY" = "1" ] || [ "$MCPO_PROXY" = "true" ]; then
     log "Executing: ${MCPO_CMD}"
     
     exec mcpo --host "${MCPO_HOST}" --port "${MCPO_PORT}" --server-type "${MCPO_SERVER_TYPE}" -- "${MCPO_TARGET_URL}"
+elif [ "$LITELLM_PROXY" = "1" ] || [ "$LITELLM_PROXY" = "true" ]; then
+    log "Starting LiteLLM Proxy Server with MCP Support..."
+    
+    # Set default values if not provided
+    LITELLM_HOST=${LITELLM_HOST:-0.0.0.0}
+    LITELLM_PORT=${LITELLM_PORT:-4000}
+    LITELLM_CONFIG=${LITELLM_CONFIG:-/app/litellm-config.yaml}
+    
+    # Check if config file exists
+    if [ ! -f "$LITELLM_CONFIG" ]; then
+        log "ERROR: LiteLLM config file not found at ${LITELLM_CONFIG}"
+        log "Please ensure the config file exists or set LITELLM_CONFIG environment variable"
+        exit 1
+    fi
+    
+    # Check if litellm command is available
+    if ! command -v litellm &> /dev/null; then
+        log "ERROR: litellm command not found. Please ensure it's installed and in PATH."
+        exit 1
+    fi
+    
+    log "LiteLLM Configuration:"
+    log "  Host: ${LITELLM_HOST}"
+    log "  Port: ${LITELLM_PORT}"
+    log "  Config File: ${LITELLM_CONFIG}"
+    log "  OAuth Header Forwarding: Enabled"
+    log "Executing: litellm --config ${LITELLM_CONFIG} --host ${LITELLM_HOST} --port ${LITELLM_PORT}"
+    
+    exec litellm --config "${LITELLM_CONFIG}" --host "${LITELLM_HOST}" --port "${LITELLM_PORT}"
 else
     log "No environment variable set. Running infinite loop..."
     log "Container will sleep for 60 seconds between log messages"

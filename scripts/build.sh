@@ -50,4 +50,4 @@ done
 echo "python-mcp image build completed and verified."
 
 # Deploy stack
-docker stack deploy -c openwebui-stack.yml openwebui_stack
+docker stack deploy -c simple-oauth-dev-stack.yml openwebui_stack

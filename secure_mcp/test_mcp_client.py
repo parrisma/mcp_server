@@ -6,9 +6,12 @@ MCP Streamable HTTP Client - Upgraded to follow official MCP library pattern
 import argparse
 import asyncio
 import json
+from math import exp
+from sys import prefix
 from typing import Optional
 from contextlib import AsyncExitStack
-
+import random
+import string
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
@@ -22,6 +25,20 @@ class MCPClient:
         self.exit_stack = AsyncExitStack()
         self._streams_context = None
         self._session_context = None
+        # Generate random strings for key, value, and group
+
+        # Initialize private member variables with random strings
+        self._key_name = self._generate_random_string(prefix="key")
+        self._key_value = self._generate_random_string(prefix="value")
+        self._group_name = self._generate_random_string(prefix="group")
+        self._status_created = "created"
+
+    def _generate_random_string(self, prefix: str, length: int = 20) -> str:
+        """Generate a random string with the given prefix and length"""
+        chars = string.ascii_letters + string.digits
+        random_part = ''.join(random.choice(chars)
+                              for _ in range(length - len(prefix) - 1))
+        return f"{prefix}_{random_part}"
 
     def _extract_text_content(self, result):
         """Safely extract text content from MCP result"""
@@ -49,7 +66,7 @@ class MCPClient:
         """List available tools from the MCP server"""
         if not self.session:
             raise RuntimeError("Not connected to MCP server")
-        
+
         response = await self.session.list_tools()
         return response
 
@@ -57,14 +74,14 @@ class MCPClient:
         """Call a specific tool with given arguments"""
         if not self.session:
             raise RuntimeError("Not connected to MCP server")
-        
+
         result = await self.session.call_tool(tool_name, arguments)
         return result
 
     async def run_tests(self):
         """Run comprehensive tests with assertions to validate expected results"""
         print("\nRunning MCP client tests...")
-        
+
         try:
             # Test 1: List available tools
             print("\n1. Testing tool listing...")
@@ -72,7 +89,7 @@ class MCPClient:
             print("Available tools:")
             for tool in tools_response.tools:
                 print(f"  - {tool.name}: {tool.description}")
-            
+
             # Assert expected tools are available
             tool_names = [tool.name for tool in tools_response.tools]
             assert "put_key_value" in tool_names, "put_key_value tool not found"
@@ -84,21 +101,24 @@ class MCPClient:
             put_result = await self.call_tool(
                 "put_key_value",
                 {
-                    "key": "test_key",
-                    "value": "test_value",
-                    "group": "test_group"
+                    "key": self._key_name,
+                    "value": self._key_value,
+                    "group": self._group_name
                 }
             )
             print(f"Put result: {put_result.content}")
-            
+
             # Parse and validate the result
             import json
             # Safely extract text content
             put_text = self._extract_text_content(put_result)
             put_data = json.loads(put_text)
-            assert put_data["status"] == "stored", f"Expected status 'stored', got {put_data['status']}"
-            assert put_data["key"] == "test_key", f"Expected key 'test_key', got {put_data['key']}"
-            assert put_data["group"] == "test_group", f"Expected group 'test_group', got {put_data['group']}"
+            assert put_data[
+                "status"] == self._status_created, f"Expected status '{self._status_created}', got {put_data['status']}"
+            assert put_data[
+                "key"] == self._key_name, f"Expected key 'test_key', got {put_data['key']}"
+            assert put_data[
+                "group"] == self._group_name, f"Expected group '{self._group_name}', got {put_data['group']}"
             print("✓ Put key-value test passed")
 
             # Test 3: Retrieve the stored value
@@ -106,50 +126,63 @@ class MCPClient:
             get_result = await self.call_tool(
                 "get_value_by_key",
                 {
-                    "key": "test_key",
-                    "group": "test_group"
+                    "key": self._key_name,
+                    "group": self._group_name
                 }
             )
             print(f"Get result: {get_result.content}")
-            
+
             # Parse and validate the result
             get_text = self._extract_text_content(get_result)
             get_data = json.loads(get_text)
-            assert get_data["result"] == "test_value", f"Expected result 'test_value', got {get_data['result']}"
+            assert "value" in get_data, f"Unexpected response format missing [value] key: {get_data}"
+            assert get_data[
+                "value"] == self._key_value, f"Expected value '{self._key_value}', got {get_data['value']}"
             print("✓ Get key-value test passed")
 
             # Test 4: Test access control (wrong group)
             print("\n4. Testing access control (wrong group)...")
+            group_that_does_not_exist = "wrong_group"
             access_result = await self.call_tool(
                 "get_value_by_key",
                 {
-                    "key": "test_key",
-                    "group": "wrong_group"
+                    "key": self._key_name,
+                    "group": group_that_does_not_exist
                 }
             )
             print(f"Access control result: {access_result.content}")
-            
+
             # Parse and validate access denial
             access_text = self._extract_text_content(access_result)
             access_data = json.loads(access_text)
-            assert access_data["result"] == "Access denied", f"Expected 'Access denied', got {access_data['result']}"
+            # Check if access_data has the expected keys
+            assert "status" in access_data and "message" in access_data, f"JSON has unexpected format: {access_text}"
+            expect_status = f"Group {group_that_does_not_exist} does not contain key {self._key_name}"
+            assert access_data[
+                "message"] == expect_status, f"Expected '{expect_status}', got {access_data['message']}"
             print("✓ Access control test passed")
 
             # Test 5: Test non-existent key
             print("\n5. Testing non-existent key...")
+            non_existent_key = self._generate_random_string(
+                prefix="non_existent_key")
             missing_result = await self.call_tool(
                 "get_value_by_key",
                 {
-                    "key": "non_existent_key",
-                    "group": "test_group"
+                    "key": non_existent_key,
+                    "group": self._group_name
                 }
             )
             print(f"Missing key result: {missing_result.content}")
-            
+
             # Parse and validate key not found
             missing_text = self._extract_text_content(missing_result)
             missing_data = json.loads(missing_text)
-            assert missing_data["result"] == "Key not found", f"Expected 'Key not found', got {missing_data['result']}"
+            # Check if missing_data has the expected keys
+            assert "status" in missing_data and "message" in missing_data, f"Unexpected response format: {missing_text}"
+            expect_status = f"Key '{non_existent_key}' not found"
+            assert missing_data[
+                "message"] == expect_status, f"Expected '{expect_status}', got {missing_data['message']}"
             print("✓ Non-existent key test passed")
 
             print("\n🎉 All tests passed successfully!")
@@ -173,32 +206,32 @@ async def health_check(client, server_url):
     """Run a quick health check for Docker health monitoring"""
     try:
         await client.connect_to_streamable_http_server(server_url)
-        
+
         # Quick test: just list tools to verify server is responding
         tools_response = await client.list_tools()
         tool_names = [tool.name for tool in tools_response.tools]
-        
+
         # Verify expected tools are available
         if "put_key_value" not in tool_names or "get_value_by_key" not in tool_names:
             return False
-            
+
         # Quick functional test: store and retrieve a value
         await client.call_tool(
             "put_key_value",
             {"key": "health_check", "value": "ok", "group": "health"}
         )
-        
+
         get_result = await client.call_tool(
             "get_value_by_key",
             {"key": "health_check", "group": "health"}
         )
-        
+
         # Verify the result
         get_text = client._extract_text_content(get_result)
         get_data = json.loads(get_text)
-        
+
         return get_data["result"] == "ok"
-        
+
     except Exception:
         return False
 
@@ -207,26 +240,27 @@ async def main():
     """Main function to run the MCP client"""
     import os
     import sys
-    
-    parser = argparse.ArgumentParser(description="Run MCP Streamable HTTP Client")
-    
+
+    parser = argparse.ArgumentParser(
+        description="Run MCP Streamable HTTP Client")
+
     # Default URL depends on environment
     default_url = os.getenv("MCP_SERVER_URL", "http://127.0.0.1:9123/mcp")
-    
+
     parser.add_argument(
         "--server-url",
         default=default_url,
         help="MCP server URL"
     )
-    
+
     parser.add_argument(
         "--health-check",
         action="store_true",
         help="Run health check mode for Docker health monitoring"
     )
-    
+
     args = parser.parse_args()
-    
+
     client = MCPClient()
 
     try:

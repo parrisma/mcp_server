@@ -36,7 +36,8 @@ RUN pip install --no-cache-dir \
     fastapi \
     uvicorn \
     pyjwt \
-    mcpo
+    mcpo \
+    litellm[proxy]
 
 # Set working directory
 WORKDIR /app
@@ -50,6 +51,7 @@ RUN mkdir -p mcp_server
 COPY secure_mcp/server.py ./mcp_server/server.py
 COPY secure_mcp/store.py ./mcp_server/store.py
 COPY secure_mcp/mcp_test_client.py ./mcp_server/mcp_test_client.py
+COPY litellm-config.yaml ./litellm-config.yaml
 
 # Set entrypoint
 ENTRYPOINT ["./entrypoint.sh"]
