@@ -1,0 +1,201 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DataGroupService",
+    "description": "DataGroupService MCP Server",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/mcp-rest/tools/call/secure_datagroup-put_key_value": {
+      "post": {
+        "summary": "Put Key Value",
+        "description": "Store a key:value associated with an access group",
+        "operationId": "tool_put_key_value_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/put_key_value_form_model"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Tool Put Key Value Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp-rest/tools/call/secure_datagroup-get_value_by_key": {
+      "post": {
+        "summary": "Get Value By Key",
+        "description": "Retrieve value for a key if access group matches",
+        "operationId": "tool_get_value_by_key_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/get_value_by_key_form_model"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Tool Get Value By Key Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp-rest/tools/call/secure_datagroup-test": {
+      "post": {
+        "summary": "Test",
+        "description": "Test tool that returns server name and current datetime",
+        "operationId": "tool_test_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "get_value_by_key_form_model": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The key to retrieve"
+          },
+          "group": {
+            "type": "string",
+            "title": "Group",
+            "description": "The access group to check against"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "group"
+        ],
+        "title": "get_value_by_key_form_model"
+      },
+      "put_key_value_form_model": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The key to store"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "The value to associate with the key"
+          },
+          "group": {
+            "type": "string",
+            "title": "Group",
+            "description": "The access group for this key-value pair"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "group"
+        ],
+        "title": "put_key_value_form_model"
+      }
+    }
+  }
+}

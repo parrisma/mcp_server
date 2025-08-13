@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libreadline-dev \
     libsqlite3-dev \
     curl \
+    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python 3.12.11
@@ -37,7 +38,8 @@ RUN pip install --no-cache-dir \
     uvicorn \
     pyjwt \
     mcpo \
-    litellm[proxy]
+    litellm[proxy]\
+    flask
 
 # Set working directory
 WORKDIR /app
@@ -50,8 +52,9 @@ RUN chmod +x entrypoint.sh
 RUN mkdir -p mcp_server
 COPY secure_mcp/server.py ./mcp_server/server.py
 COPY secure_mcp/store.py ./mcp_server/store.py
-COPY secure_mcp/mcp_test_client.py ./mcp_server/mcp_test_client.py
+COPY secure_mcp/test_mcp_client.py ./mcp_server/test_mcp_client.py
 COPY litellm-config.yaml ./litellm-config.yaml
+COPY nginx/litellm-to-openwebui-proxy.py ./nginx/litellm-to-openwebui-proxy.py
 
 # Set entrypoint
 ENTRYPOINT ["./entrypoint.sh"]

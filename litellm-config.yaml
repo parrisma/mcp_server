@@ -4,12 +4,12 @@ model_list:
   - model_name: "gpt-4"
     litellm_params:
       model: "openrouter/openai/gpt-4"
-      api_key: "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"
+      api_key: "sk-or-<REDACTED>"
       api_base: "https://openrouter.ai/api/v1"
   - model_name: "claude-3-5-sonnet"
     litellm_params:
       model: "openrouter/anthropic/claude-3.5-sonnet"
-      api_key: "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"
+      api_key: "sk-or-<REDACTED>"
       api_base: "https://openrouter.ai/api/v1"
 
 mcp_servers:
@@ -18,10 +18,10 @@ mcp_servers:
     transport: "http"
     auth_type: "none"
     spec_version: "2025-03-26"
-    access_groups: ["dev_group"]
+    access_groups: ["mcp_group"]
 
 general_settings:
-  master_key: "sk-1234567890abcdef"
+  master_key: "<REDACTED>"
   database_url: "postgresql://litellm:SUPERsecret@postgresql-litellm:5432/litellm"
 
 litellm_settings:

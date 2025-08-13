@@ -1,0 +1,14 @@
+# .gitattributes
+*.py     filter=masksecrets
+*.js     filter=masksecrets
+*.ts     filter=masksecrets
+*.json   filter=masksecrets
+*.env    filter=masksecrets
+*.sh     filter=masksecrets
+*.yml    filter=masksecrets
+*.yaml   filter=masksecrets
+*.xml    filter=masksecrets
+*.conf   filter=masksecrets
+*.md   filter=masksecrets
+Dockerfile filter=masksecrets
+

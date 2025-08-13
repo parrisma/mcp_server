@@ -17,10 +17,14 @@ log "  MCPO_HOST=${MCPO_HOST:-0.0.0.0}"
 log "  MCPO_PORT=${MCPO_PORT:-8123}"
 log "  MCPO_SERVER_TYPE=${MCPO_SERVER_TYPE:-streamable-http}"
 log "  MCPO_TARGET_URL=${MCPO_TARGET_URL:-not set}"
-log "  LITELLM_PROXY=${LITELLM_PROXY:-not set}"
-log "  LITELLM_HOST=${LITELLM_HOST:-0.0.0.0}"
-log "  LITELLM_PORT=${LITELLM_PORT:-4000}"
-log "  LITELLM_CONFIG=${LITELLM_CONFIG:-/app/litellm-config.yaml}"
+log "  OPENWEB_TO_LITELLM=${OPENWEB_TO_LITELLM:-not set}"
+log "  ADAPTER_HOST=${ADAPTER_HOST:-0.0.0.0}"
+log "  ADAPTER_PORT=${ADAPTER_PORT:-8088}"
+log "  ADAPTER_LITELLM_URL=${ADAPTER_LITELLM_URL:-http://litellm:4000/mcp-rest/tools/call}"
+log "  ADAPTER_TIMEOUT=${ADAPTER_TIMEOUT:-30}"
+log "  ADAPTER_LOG_LEVEL=${ADAPTER_LOG_LEVEL:-info}"
+log "  ADAPTER_ENABLE_CORS=${ADAPTER_ENABLE_CORS:-false}"
+log "  ADAPTER_CORS_ALLOW_ORIGINS=${ADAPTER_CORS_ALLOW_ORIGINS:-*}"
 
 if [ "$MCP_SERVER" = "1" ] || [ "$MCP_SERVER" = "true" ]; then
     log "Starting MCP Server..."
@@ -63,35 +67,41 @@ elif [ "$MCPO_PROXY" = "1" ] || [ "$MCPO_PROXY" = "true" ]; then
     log "Executing: ${MCPO_CMD}"
     
     exec mcpo --host "${MCPO_HOST}" --port "${MCPO_PORT}" --server-type "${MCPO_SERVER_TYPE}" -- "${MCPO_TARGET_URL}"
-elif [ "$LITELLM_PROXY" = "1" ] || [ "$LITELLM_PROXY" = "true" ]; then
-    log "Starting LiteLLM Proxy Server with MCP Support..."
-    
-    # Set default values if not provided
-    LITELLM_HOST=${LITELLM_HOST:-0.0.0.0}
-    LITELLM_PORT=${LITELLM_PORT:-4000}
-    LITELLM_CONFIG=${LITELLM_CONFIG:-/app/litellm-config.yaml}
-    
-    # Check if config file exists
-    if [ ! -f "$LITELLM_CONFIG" ]; then
-        log "ERROR: LiteLLM config file not found at ${LITELLM_CONFIG}"
-        log "Please ensure the config file exists or set LITELLM_CONFIG environment variable"
-        exit 1
+elif [ "$OPENWEB_TO_LITELLM" = "1" ] || [ "$OPENWEB_TO_LITELLM" = "true" ]; then
+    log "Starting MCP Adapter sidecar..."
+
+    ADAPTER_HOST=${ADAPTER_HOST:-0.0.0.0}
+    ADAPTER_PORT=${ADAPTER_PORT:-8088}
+    ADAPTER_LITELLM_URL=${ADAPTER_LITELLM_URL:-http://litellm:4000/mcp-rest/tools/call}
+    ADAPTER_TIMEOUT=${ADAPTER_TIMEOUT:-30}
+    ADAPTER_LOG_LEVEL=${ADAPTER_LOG_LEVEL:-info}
+
+    # Build command as array for safety
+    CMD=(python -u ./nginx/litellm-to-openwebui-proxy.py \
+        --host "${ADAPTER_HOST}" \
+        --port "${ADAPTER_PORT}" \
+        --litellm-url "${ADAPTER_LITELLM_URL}" \
+        --timeout "${ADAPTER_TIMEOUT}" \
+        --log-level "${ADAPTER_LOG_LEVEL}")
+
+    # Enable CORS if requested
+    if [ "$ADAPTER_ENABLE_CORS" = "1" ] || [ "$ADAPTER_ENABLE_CORS" = "true" ]; then
+        CMD+=("--enable-cors")
+        # Support comma or space separated origins
+        ORIGINS_STR=${ADAPTER_CORS_ALLOW_ORIGINS:-*}
+        ORIGINS_STR=${ORIGINS_STR//,/ } # replace commas with spaces
+        # shellcheck disable=SC2206
+        ORIGINS_ARR=(${ORIGINS_STR})
+        CMD+=("--cors-allow-origins")
+        for o in "${ORIGINS_ARR[@]}"; do
+            CMD+=("$o")
+        done
     fi
-    
-    # Check if litellm command is available
-    if ! command -v litellm &> /dev/null; then
-        log "ERROR: litellm command not found. Please ensure it's installed and in PATH."
-        exit 1
-    fi
-    
-    log "LiteLLM Configuration:"
-    log "  Host: ${LITELLM_HOST}"
-    log "  Port: ${LITELLM_PORT}"
-    log "  Config File: ${LITELLM_CONFIG}"
-    log "  OAuth Header Forwarding: Enabled"
-    log "Executing: litellm --config ${LITELLM_CONFIG} --host ${LITELLM_HOST} --port ${LITELLM_PORT}"
-    
-    exec litellm --config "${LITELLM_CONFIG}" --host "${LITELLM_HOST}" --port "${LITELLM_PORT}"
+
+    # Pretty print command
+    printf -v CMD_STR '%q ' "${CMD[@]}"
+    log "Executing: ${CMD_STR}"
+    exec "${CMD[@]}"
 else
     log "No environment variable set. Running infinite loop..."
     log "Container will sleep for 60 seconds between log messages"
