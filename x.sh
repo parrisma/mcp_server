@@ -9,7 +9,7 @@ curl -X 'GET' \
 curl -X 'GET' \
   'http://localhost:4000/v1/mcp/server/health' \
   -H 'accept: application/json' \
-  -H "Authorization: Bearer <REDACTED>"
+  -H "Authorization: Bearer <REDACTED>-kYdYzsKZg"
 
 curl -X 'GET' \
   'http://localhost:4000/v1/mcp/server/71e8dd123158953d20757f00c04bd8d4' \
@@ -20,12 +20,12 @@ curl -X 'GET' \
 curl -X 'GET' \
   'http://localhost:4000/mcp-rest/tools/list' \
   -H 'accept: application/json' \
-  -H "Authorization: Bearer <REDACTED>"
+  -H "Authorization: Bearer <REDACTED>-kYdYzsKZg"
 
 curl -X 'GET' \
   'http://localhost:4000/v1/mcp/access_groups' \
   -H 'accept: application/json' \
-  -H "Authorization: Bearer <REDACTED>"
+  -H "Authorization: Bearer "
 
 
 curl -X 'GET' \
