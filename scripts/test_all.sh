@@ -91,3 +91,47 @@ if ! "${SCRIPT_DIR}/nginx-verify.sh"; then
     echo ">>> ERROR, Failed to verify NGINX"
     exit 1
 fi
+
+echo
+echo "********** V E R I F Y  V A U L T  ***************"
+echo
+
+if ! "${SCRIPT_DIR}/vault-verify.sh"; then
+    echo "vault-verify.sh failed" >&2
+    echo ">>> ERROR, Failed to verify Vault"
+    exit 1
+fi
+
+echo
+echo "******** C H E C K  V A U L T :  l i t e l l m _ a p i _ k e y ********"
+echo
+
+litellm_secret_name="litellm_api_key"
+vault_token="${VAULT_TOKEN:-${VAULT_ROOT_TOKEN:-root}}"
+vault_path="${VAULT_LITELLM_PATH:-openwebui}"   # logical secret path
+vault_mount="${VAULT_LITELLM_MOUNT:-secret}"   # kv mount
+
+if [[ ! -f "${SCRIPT_DIR}/vault-lib.sh" ]]; then
+    echo "vault-lib.sh missing; cannot check secret consistently." >&2
+    exit 1
+fi
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/vault-lib.sh"
+
+if ! declare -F vault_kv_get >/dev/null 2>&1; then
+    echo "vault_kv_get not loaded from vault-lib.sh" >&2
+    exit 1
+fi
+
+if vault_kv_get "$vault_token" "$vault_path" "$litellm_secret_name" "$vault_mount" >/dev/null 2>&1; then
+    echo "Vault secret '${litellm_secret_name}' found at ${vault_mount}/${vault_path}."
+else
+    echo "Vault secret '${litellm_secret_name}' NOT found at ${vault_mount}/${vault_path}."
+    echo
+    echo "To create and store it:"  
+    echo "1. Log in to LiteLLM UI:  http://localhost:4000/ui  (admin user)."  
+    echo "2. Create a Virtual Key (Team: mcp_tools, KeyType: default). Copy the key."  
+    echo "3. Export it:  export LITELLM_API_KEY=\"<copied-key>\""  
+    echo "4. Store in Vault:  ${SCRIPT_DIR}/vault-set-litellm-key.sh --token $vault_token --value \"$LITELLM_API_KEY\""  
+    echo "5. Re-run this script."  
+fi

@@ -168,6 +168,23 @@ services:
       - home-net
       - proxy
 
+  # HashiCorp Vault (development mode)
+  vault:
+    image: hashicorp/vault:1.16.3
+    command: >-
+      server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_ADDR=http://0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - home-net
+    volumes:
+      - vault_data:/vault/file
+
 networks:
   proxy:
     external: true
@@ -178,3 +195,4 @@ volumes:
   postgresql_data:
   openwebui_data:
   postgresql_data_litellm:
+  vault_data:

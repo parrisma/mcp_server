@@ -1,5 +1,8 @@
 #!/bin/sh
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
 # Remove the stack and wait for it to complete
 docker stack rm openwebui_stack
 
@@ -38,8 +41,8 @@ while ! docker network ls --format "{{.Name}}" | grep -E "^(home-net|proxy)$" | 
 done
 echo "Networks creation completed."
 
-# Build image
-docker build -f Dockerfile -t python-mcp ../
+# Build image (Dockerfile lives alongside this script in main/; context is project root)
+docker build -f "${SCRIPT_DIR}/Dockerfile" -t python-mcp "${ROOT_DIR}"
 
 # Check if the python-mcp image was built successfully
 echo "Checking if python-mcp image was built..."
@@ -49,5 +52,5 @@ while ! docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^python-mcp
 done
 echo "python-mcp image build completed and verified."
 
-# Deploy stack
-docker stack deploy -c ../swarm/simple-oauth-dev-stack.yml openwebui_stack
+# Deploy stack (compose file in swarm/ at project root)
+docker stack deploy -c "${ROOT_DIR}/swarm/simple-oauth-dev-stack.yml" openwebui_stack

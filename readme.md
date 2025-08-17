@@ -53,3 +53,16 @@ Assume a clean install
 ### Openwebui
 
 1. Login as Admin
+1. admin > settings > tools (add = hit + top right)
+1. URL = <http://localhost:9000>
+1. openapi.json => mcp/secure_datagroup/openapi.json
+1. Bearer = virtual key created in litellm [http://localhost:4000/ui/?page=api-keys](http://localhost:4000/ui/?page=api-keys) for Team mcp_tools.
+
+### Debug
+
+1. Start and Ubuntu window on Win-11 or just a regular terminal in Linux.
+1. go to project root
+1. conda activate openwebui or [create with](build/create_openwebui_env.sh)
+1. Create a virtual key litellm [http://localhost:4000/ui/?page=api-keys](http://localhost:4000/ui/?page=api-keys) for Team mcp_tools.
+1. export LITELLM_API_KEY=<litellm virtual key>
+1. run the [script](scripts/test_all.sh)

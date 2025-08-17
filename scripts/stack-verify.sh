@@ -22,8 +22,8 @@ REQUIRE_HEALTH=${REQUIRE_HEALTH:-1} # If a service has a health status, require 
 QUIET=${QUIET:-0}
 
 EXPECTED_NETWORKS=(proxy home-net)
-EXPECTED_VOLUMES=(postgresql_data openwebui_data postgresql_data_litellm)
-EXPECTED_SERVICES=(postgresql keycloak python-mcp openwebui postgresql-litellm litellm openweb-to-litellm nginx-mcp)
+EXPECTED_VOLUMES=(postgresql_data openwebui_data postgresql_data_litellm vault_data)
+EXPECTED_SERVICES=(postgresql keycloak python-mcp openwebui postgresql-litellm litellm openweb-to-litellm nginx-mcp vault)
 
 print() { if [ "$QUIET" = 0 ]; then echo -e "$@"; fi }
 tab() { print "\t$@"; }
