@@ -230,9 +230,11 @@ async def health_check(client, server_url):
         get_text = client._extract_text_content(get_result)
         get_data = json.loads(get_text)
 
-        return get_data["result"] == "ok"
+        # Health success if retrieved value matches what we stored
+        return get_data.get("value") == "ok"
 
-    except Exception:
+    except Exception as e:
+        print(f"Health check exception: {e}")
         return False
 
 
@@ -275,6 +277,8 @@ async def main():
             print("Connected successfully!")
 
             await client.run_tests()
+            # All tests passed
+            sys.exit(0)
     except Exception as e:
         if args.health_check:
             sys.exit(1)
@@ -282,6 +286,8 @@ async def main():
             print(f"Error: {e}")
             import traceback
             traceback.print_exc()
+            # Any exception in test mode should yield non-zero exit
+            sys.exit(1)
     finally:
         await client.cleanup()
 

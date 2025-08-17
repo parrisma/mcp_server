@@ -91,3 +91,25 @@ clear;curl -X POST "http://localhost:9000/mcp-rest/tools/call/secure_datagroup-p
   curl -GET "http://0.0.0.0:8088/health"
 
   curl -GET "http://localhost:8088/health"
+
+
+clear;curl -X POST "http://localhost:8088/mcp-rest/tools/call/secure_datagroup-put_key_value" \
+  -H "Authorization: Bearer <REDACTED>-kYdYzsKZg" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "arguments": {
+      "key": "name",
+      "value": "Bobby123",
+      "group": "people"
+    }
+  }'
+
+ clear;curl -X POST "http://localhost:8088/mcp-rest/tools/call/secure_datagroup-get_value_by_key" \
+  -H "Authorization: Bearer <REDACTED>-kYdYzsKZg" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "arguments": {
+      "key": "name",
+      "group": "people"
+    }
+  }'

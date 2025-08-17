@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libreadline-dev \
     libsqlite3-dev \
     curl \
+    jq \
     iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
