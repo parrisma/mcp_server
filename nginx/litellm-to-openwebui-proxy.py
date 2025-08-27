@@ -1,32 +1,47 @@
 #!/usr/bin/env python3
+
+# Standard library
 import argparse
+from datetime import datetime, timezone
 import json
 import logging
 from typing import Any, Dict, Optional
 
+# Third-party
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
+import litellm
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
-from datetime import datetime, timezone
+
+# Local
+from vault import VaultClient
 
 
 class MCPAdapterProxy:
     class Settings:
         def __init__(
             self,
-            litellm_url: str = "http://litellm:4000/mcp-rest/tools/call",
-            timeout: float = 30.0,
-            log_level: str = "info",
-            enable_cors: bool = False,
-            cors_allow_origins: Optional[list[str]] = None,
+            litellm_url: str,
+            timeout: float,
+            log_level: str,
+            enable_cors: bool,
+            cors_allow_origins: list[str],
+            vault_addr: str,
+            token: str,
+            mount: str,
+            path: str
         ) -> None:
-            self.litellm_url = litellm_url.rstrip("/")
-            self.timeout = timeout
-            self.log_level = log_level
-            self.enable_cors = enable_cors
-            self.cors_allow_origins = cors_allow_origins or ["*"]
+            self.litellm_url: str = litellm_url.rstrip("/")
+            self.timeout: float = timeout
+            self.log_level: str = log_level
+            self.enable_cors: bool = enable_cors
+            self.cors_allow_origins: list[str] = cors_allow_origins or ["*"]
+            self.vault_addr: str = vault_addr
+            self.token: str = token
+            self.mount: str = mount
+            self.path: str = path
 
     @classmethod
     def build_settings_from_args(cls, args: argparse.Namespace) -> "MCPAdapterProxy.Settings":
@@ -36,6 +51,10 @@ class MCPAdapterProxy:
             log_level=args.log_level,
             enable_cors=args.enable_cors,
             cors_allow_origins=args.cors_allow_origins,
+            vault_addr=args.vault_addr,
+            token=args.token,
+            mount=args.mount,
+            path=args.path
         )
 
     @staticmethod
@@ -69,7 +88,57 @@ class MCPAdapterProxy:
             default=["*"],
             help="Allowed origins for CORS (default: *)",
         )
+        parser.add_argument("--vault-addr", "-a", default="http://localhost:8200",
+                            help="Vault address (default: %(default)s)")
+        parser.add_argument("--token", "-t", required=True,
+                            help="Vault token", default="root")
+        parser.add_argument("--mount", "-m", default="secret",
+                            help="KV mount name (default: %(default)s)")
+        parser.add_argument("--path", "-p", required=True, default="openwebui",
+                            help="Secret path under the mount (e.g., %(default)s)")
+
         return parser.parse_args()
+
+    @staticmethod
+    def _get_auth_key(text: str) -> str:
+        """
+        Extract the API key from a bearer-style Authorization header.
+
+        This function expects a string in the form "Bearer sk-xxxxxxx" and returns
+        only the key portion ("sk-xxxxxxx"). Leading and trailing whitespace are ignored.
+        If the input does not start with 'Bearer' followed by a space and a token,
+        a ValueError is raised.
+
+        Args:
+            text: The Authorization header value, e.g., "Bearer sk-xxxxxxx".
+
+        Returns:
+            The extracted key string.
+
+        Raises:
+            ValueError: If the input does not start with 'Bearer'.
+        """
+        parts = text.strip().split(None, 1)
+        if len(parts) != 2 or parts[0] != "Bearer":
+            raise ValueError("string does not start with Bearer")
+        return parts[1]
+
+    def _fetch_secret_for_authorization(self, authorization: str) -> str:
+        """
+        Extract 'sk-...' from 'Bearer sk-...' and fetch its secret from Vault.
+
+        Returns:
+            The extracted key string.
+
+        Raises:
+            ValueError: If the authorization string is of an invalid format.
+        """
+        key = self._get_auth_key(authorization)
+        auth_key: str | None = self._vault_client.get_kv(
+            path=self._settings.path,            key=key)
+        if auth_key is None:
+            raise ValueError("Failed to retrieve auth key from Vault")
+        return auth_key
 
     def __init__(self,
                  settings: Optional["MCPAdapterProxy.Settings"] = None,
@@ -104,6 +173,12 @@ class MCPAdapterProxy:
                 allow_headers=["*"],
                 max_age=86400,
             )
+
+        self._vault_client: VaultClient = VaultClient(
+            addr=self._settings.vault_addr,
+            token=self._settings.token,
+            mount=self._settings.mount,
+        )
 
         settings_snapshot = {
             "app_title": self.app.title,
@@ -175,10 +250,23 @@ class MCPAdapterProxy:
                     payload = {"name": tool_id, "arguments": body_json}
 
             # Forward Authorization
-            auth = request.headers.get("authorization", "")
-            fwd_headers = {"Content-Type": "application/json"}
-            if auth:
-                fwd_headers["Authorization"] = auth
+            try:
+                auth: str = request.headers.get("authorization", "")
+                litellm_auth_key = self._fetch_secret_for_authorization(authorization=auth)
+                auth = f"Bearer {litellm_auth_key}"
+                fwd_headers = {"Content-Type": "application/json"}
+                if auth:
+                    fwd_headers["Authorization"] = auth
+            except Exception as e:
+                logging.warning("Failed to forward Authorization header: %s", e)
+
+            # Print incoming request headers to stdout
+            try:
+                headers_dict = {k: v for k, v in request.headers.items()}
+                print(json.dumps(
+                    {"incoming_request_headers": headers_dict}, ensure_ascii=False))
+            except Exception as e:
+                print(f"Failed to serialize headers: {e}")
 
             # POST to LiteLLM endpoint
             try:

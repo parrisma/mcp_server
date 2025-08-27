@@ -41,6 +41,15 @@ while ! docker network ls --format "{{.Name}}" | grep -E "^(home-net|proxy)$" | 
 done
 echo "Networks creation completed."
 
+# Clean up exited containers before build/deploy
+echo "Cleaning up exited containers..."
+if docker ps -aq -f status=exited | grep -q .; then
+    docker rm $(docker ps -aq -f status=exited) >/dev/null 2>&1 || true
+    echo "Removed exited containers."
+else
+    echo "No exited containers to remove."
+fi
+
 # Build image (Dockerfile lives alongside this script in main/; context is project root)
 docker build -f "${SCRIPT_DIR}/Dockerfile" -t python-mcp "${ROOT_DIR}"
 

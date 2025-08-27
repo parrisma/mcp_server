@@ -60,6 +60,7 @@ COPY ../litellm/litellm-config.yaml ./litellm-config.yaml
 
 RUN mkdir -p nginx
 COPY ../nginx/litellm-to-openwebui-proxy.py ./nginx/litellm-to-openwebui-proxy.py
+COPY ../nginx/vault.py ./nginx/vault.py
 
 # Set entrypoint
 ENTRYPOINT ["./entrypoint.sh"]
