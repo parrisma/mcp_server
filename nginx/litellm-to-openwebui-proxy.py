@@ -252,13 +252,15 @@ class MCPAdapterProxy:
             # Forward Authorization
             try:
                 auth: str = request.headers.get("authorization", "")
-                litellm_auth_key = self._fetch_secret_for_authorization(authorization=auth)
+                litellm_auth_key = self._fetch_secret_for_authorization(
+                    authorization=auth)
                 auth = f"Bearer {litellm_auth_key}"
                 fwd_headers = {"Content-Type": "application/json"}
                 if auth:
                     fwd_headers["Authorization"] = auth
             except Exception as e:
-                logging.warning("Failed to forward Authorization header: %s", e)
+                logging.warning(
+                    "Failed to forward Authorization header: %s", e)
 
             # Print incoming request headers to stdout
             try:

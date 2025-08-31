@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  # PostgreSQL for LiteLLM
+  postgresql-litellm:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_DB: litellm
+      POSTGRES_PASSWORD: SUPERsecret
+    volumes:
+      - postgresql_data_litellm:/var/lib/postgresql/data
+    networks:
+      - home-net
+    ports:
+      - "5433:5432" # Use different port to avoid conflicts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    command: --config /app/config.yaml --detailed_debug
+    volumes:
+      - ../litellm/litellm-config.yaml:/app/config.yaml
+    ports:
+      - "4000:4000"
+    networks:
+      home-net:
+        aliases:
+          - litellm # Other stacks can access http://litellm:4000
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    environment:
+      - LITELLM_MASTER_KEY=<REDACTED>
+      - DATABASE_URL=postgresql://litellm:SUPERsecret@postgresql-litellm:5432/litellm
+    depends_on:
+      - postgresql-litellm
+
+networks:
+  home-net:
+    external: true
+
+volumes:
+  postgresql_data_litellm:

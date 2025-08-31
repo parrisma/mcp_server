@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  python-mcp:
+    image: python-mcp:latest
+    ports:
+      - "9123:9123"
+      - "8312:8312" # MCP Proxy Web Server
+    environment:
+      - MCP_SERVER=1
+      - MCP_SERVER_URL=http://python-mcp:9123/mcp
+    networks:
+      home-net:
+        aliases:
+          - python-mcp # Other stacks can access http://python-mcp:9123
+networks:
+  home-net:
+    external: true

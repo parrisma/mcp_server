@@ -57,8 +57,9 @@ GET_RESP=$(curl -fsS -X POST "${LITELLM_TO_OPENWEB_URL}/mcp-rest/tools/call/secu
 
 echo "Raw get_value_by_key response: ${GET_RESP}"
 
-# The tool response is an array; find the first text item, then parse its JSON string to extract .value
-if ! NESTED_JSON=$(printf '%s' "$GET_RESP" | jq -er '[.[] | select(.type=="text")][0].text'); then
+# The tool response is an array; find the first text item. Keep it as a JSON string (no -r),
+# so that fromjson can parse it in the next step.
+if ! NESTED_JSON=$(printf '%s' "$GET_RESP" | jq -e '[.[] | select(.type=="text")][0].text'); then
     echo "Error: Unable to extract .text from tool response." >&2
     echo "$GET_RESP" >&2
     exit 1

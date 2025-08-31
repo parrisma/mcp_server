@@ -73,6 +73,7 @@ vault_kv_set(){
     payload=$(jq -n --arg k "$key_name" --arg v "$value" '{($k):$v}')
   fi
   local status
+  #echo "+ curl -sS -o /dev/null -w '%{http_code}' -H 'X-Vault-Token: $token' -H 'Content-Type: application/json' -X POST \"$write_url\" -d '***REDACTED***'" >&2
   status=$(curl -sS -o /dev/null -w '%{http_code}' -H "X-Vault-Token: $token" -H 'Content-Type: application/json' -X POST "$write_url" -d "$payload" || echo 000)
   if [[ "$status" != 200 && "$status" != 204 ]]; then
     echo "vault-lib: write failed HTTP $status" >&2

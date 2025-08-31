@@ -51,24 +51,6 @@ services:
       retries: 10
       start_period: 40s
 
-  # Your MCP Server
-  python-mcp:
-    image: python-mcp:latest
-    ports:
-      - "9123:9123"
-      - "8312:8312" # MCP Proxy Web Server
-    environment:
-      - MCP_SERVER=1
-      - MCP_SERVER_URL=http://python-mcp:9123/mcp
-    networks:
-      - home-net
-    #healthcheck:
-    #  test: ["CMD-SHELL", "python mcp_server/mcp_healthcheck.py"]
-    #  interval: 30s
-    #  timeout: 5s
-    #  retries: 3
-    #  start_period: 10s
-
   # OpenWebUI with OAuth
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
@@ -96,46 +78,6 @@ services:
     depends_on:
       - keycloak
       - litellm
-
-  # PostgreSQL for LiteLLM
-  postgresql-litellm:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: litellm
-      POSTGRES_DB: litellm
-      POSTGRES_PASSWORD: SUPERsecret
-    volumes:
-      - postgresql_data_litellm:/var/lib/postgresql/data
-    networks:
-      - home-net
-    ports:
-      - "5433:5432" # Use different port to avoid conflicts
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  litellm:
-    image: ghcr.io/berriai/litellm:main-stable
-    command: --config /app/config.yaml --detailed_debug
-    volumes:
-      - ../litellm/litellm-config.yaml:/app/config.yaml
-    ports:
-      - "4000:4000"
-    networks:
-      - home-net
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-    environment:
-      - LITELLM_MASTER_KEY=<REDACTED>
-      - DATABASE_URL=postgresql://litellm:SUPERsecret@postgresql-litellm:5432/litellm
-    depends_on:
-      - postgresql-litellm
 
   # Sidecar: OpenWebUI -> LiteLLM MCP adapter
   openweb-to-litellm:
@@ -168,23 +110,6 @@ services:
       - home-net
       - proxy
 
-  # HashiCorp Vault (development mode)
-  vault:
-    image: hashicorp/vault:1.16.3
-    command: >-
-      server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
-    environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=root
-      - VAULT_ADDR=http://0.0.0.0:8200
-    ports:
-      - "8200:8200"
-    cap_add:
-      - IPC_LOCK
-    networks:
-      - home-net
-    volumes:
-      - vault_data:/vault/file
-
 networks:
   proxy:
     external: true
@@ -195,4 +120,3 @@ volumes:
   postgresql_data:
   openwebui_data:
   postgresql_data_litellm:
-  vault_data:
