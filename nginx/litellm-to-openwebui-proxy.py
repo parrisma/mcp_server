@@ -250,12 +250,12 @@ class MCPAdapterProxy:
                     payload = {"name": tool_id, "arguments": body_json}
 
             # Forward Authorization
+            fwd_headers: Dict[str, str] = {"Content-Type": "application/json"}
             try:
                 auth: str = request.headers.get("authorization", "")
                 litellm_auth_key = self._fetch_secret_for_authorization(
                     authorization=auth)
                 auth = f"Bearer {litellm_auth_key}"
-                fwd_headers = {"Content-Type": "application/json"}
                 if auth:
                     fwd_headers["Authorization"] = auth
             except Exception as e:

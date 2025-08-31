@@ -15,9 +15,6 @@ fi
 
 ensure_stack_removed "openwebui_stack"
 
-# Wait a bit more for network cleanup
-sleep 3
-
 ensure_network_removed "home-net"
 ensure_network_removed "proxy"
 

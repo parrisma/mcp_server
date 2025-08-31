@@ -185,7 +185,7 @@ class MCPClient:
                 "message"] == expect_status, f"Expected '{expect_status}', got {missing_data['message']}"
             print("✓ Non-existent key test passed")
 
-            print("\n🎉 All tests passed successfully!")
+            print("\n All tests passed successfully!")
 
         except AssertionError as e:
             print(f"\nTest failed: {e}")

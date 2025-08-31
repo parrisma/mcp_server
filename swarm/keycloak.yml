@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  # PostgreSQL for Keycloak
+  postgresql:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_DB: keycloak
+      POSTGRES_PASSWORD: SUPERsecret
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      home-net:
+        aliases:
+          - postgresql # Other stacks can access http://postgresql:5432
+    ports:
+      - "5432:5432" # Expose for debugging if needed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Keycloak for OAuth - simplified config
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.3
+    command: start-dev # Development mode - simpler setup
+    environment:
+      KC_DB: postgres
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: SUPERsecret
+      KC_DB_URL_HOST: postgresql
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: password
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: "localhost:8081"
+      KC_PROXY: "edge"
+      KC_PROXY_ADDRESS_FORWARDING: "true"
+    ports:
+      - "8081:8080" # Direct port access - no Traefik needed
+    networks:
+      home-net:
+        aliases:
+          - keycloak # Other stacks can access http://keycloak:8081
+    depends_on:
+      - postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+networks:
+  home-net:
+    external: true
+
+volumes:
+  postgresql_data:

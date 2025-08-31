@@ -8,9 +8,9 @@ from typing import Annotated, Dict, Any, Optional
 from store import SecureStore
 from datetime import datetime
 
-# Configure basic logging
+# Configure basic logging at DEBUG level
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
@@ -47,10 +47,12 @@ class DataGroupServiceServer:
             group: Annotated[str, Field(
                 description="The access group for this key-value pair")]
         ) -> Dict[str, Any]:
-            self.logger.info(
+            self.logger.debug(
                 f"put_key_value called with key={key}, group={group}")
+            headers = get_http_headers()
+            self.logger.debug(f"Headers: {headers}")
             res = self.store.put(key, value, group)
-            self.logger.info(f"put_key_value returned {res}")
+            self.logger.debug(f"put_key_value returned {res}")
             return res
 
         @self.mcp.tool(name="get_value_by_key", description="Retrieve value for a key if access group matches")
@@ -59,16 +61,18 @@ class DataGroupServiceServer:
             group: Annotated[str, Field(
                 description="The access group to check against")]
         ) -> Dict[str, Any]:
-            self.logger.info(
+            self.logger.debug(
                 f"get_value_by_key called with key={key}, group={group}")
+            headers = get_http_headers()
+            self.logger.debug(f"Headers: {headers}")            
             res = self.store.get(key, group)
-            self.logger.info(f"get_value_by_key returned {res}")
+            self.logger.debug(f"get_value_by_key returned {res}")
             return res
 
         @self.mcp.tool(name="test", description="Test tool that returns server name and current datetime")
         async def test() -> Dict[str, Any]:
             """Test tool that returns the MCP server name and current datetime"""
-            self.logger.info("test tool called")
+            self.logger.debug("test tool called")
             headers = get_http_headers()
             self.logger.debug(f"Headers: {headers}")
             result = {
@@ -77,18 +81,18 @@ class DataGroupServiceServer:
                 "timestamp_utc": datetime.utcnow().isoformat() + "Z",
                 "headers": headers,
             }
-            self.logger.info(f"test tool returned {result}")
+            self.logger.debug(f"test tool returned {result}")
             return result
 
-    def run(self, log_level: str = "info") -> None:
-        self.logger.info("Starting MCP server...")
+    def run(self, log_level: str = "debug") -> None:
+        self.logger.debug("Starting MCP server...")
         self.mcp.run(
             transport="streamable-http",
             host=self._host,
             port=self._port,
             log_level=log_level,
         )
-        self.logger.info("MCP server stopped")
+        self.logger.debug("MCP server stopped")
 
 
 if __name__ == "__main__":
