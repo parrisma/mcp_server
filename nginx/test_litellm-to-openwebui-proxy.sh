@@ -43,17 +43,17 @@ echo "LiteLLM to OpenWebUI URL: ${LITELLM_TO_OPENWEB_URL}"
 echo "OpenWebUI OAuth key: ${OPENWEBUI_OAUTH_KEY}"
 echo "Random value: ${RANDOM_VALUE}"
 
-curl -fS -X POST "${LITELLM_TO_OPENWEB_URL}/mcp-rest/tools/call/secure_datagroup-put_key_value" \
+curl -fS -X POST "${LITELLM_TO_OPENWEB_URL}/mcp-rest/tools/call/securedata-put_key_value" \
 -H "Authorization: Bearer ${OPENWEBUI_OAUTH_KEY}" \
 -H "Content-Type: application/json" \
 -d "$(jq -n --arg k "$KEY" --arg v "$RANDOM_VALUE" --arg g "$GROUP" '{arguments:{key:$k, value:$v, group:$g}}')" \
-|| { echo "Error: secure_datagroup-put_key_value request failed" >&2; exit 1; }
+|| { echo "Error: securedata-put_key_value request failed" >&2; exit 1; }
 
-GET_RESP=$(curl -fsS -X POST "${LITELLM_TO_OPENWEB_URL}/mcp-rest/tools/call/secure_datagroup-get_value_by_key" \
+GET_RESP=$(curl -fsS -X POST "${LITELLM_TO_OPENWEB_URL}/mcp-rest/tools/call/securedata-get_value_by_key" \
     -H "Authorization: Bearer ${OPENWEBUI_OAUTH_KEY}" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg k "$KEY" --arg g "$GROUP" '{arguments:{key:$k, group:$g}}')"
-) || { echo "Error: secure_datagroup-get_value_by_key request failed" >&2; exit 1; }
+) || { echo "Error: securedata-get_value_by_key request failed" >&2; exit 1; }
 
 echo "Raw get_value_by_key response: ${GET_RESP}"
 

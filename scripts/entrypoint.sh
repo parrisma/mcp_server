@@ -26,10 +26,18 @@ log "  ADAPTER_LOG_LEVEL=${ADAPTER_LOG_LEVEL:-info}"
 log "  ADAPTER_ENABLE_CORS=${ADAPTER_ENABLE_CORS:-false}"
 log "  ADAPTER_CORS_ALLOW_ORIGINS=${ADAPTER_CORS_ALLOW_ORIGINS:-*}"
 
+export MCP_DEBUG=1
+# Both server.py and test_server.py default to host 0.0.0.0 and port=9123
 if [ "$MCP_SERVER" = "1" ] || [ "$MCP_SERVER" = "true" ]; then
-    log "Starting MCP Server..."
-    log "Executing: python -u ./mcp_server/server.py"
-    exec python -u ./mcp_server/server.py
+    if [ -n "${MCP_DEBUG:-}" ]; then
+        log "Starting MCP Test Server (debug mode)..."
+        log "Executing: python -u ./mcp_server/test_server.py"
+        exec python -u ./mcp_server/test_server.py
+    else
+        log "Starting MCP Server..."
+        log "Executing: python -u ./mcp_server/server.py"
+        exec python -u ./mcp_server/server.py
+    fi
 elif [ "$MCP_TEST" = "1" ] || [ "$MCP_TEST" = "true" ]; then
     log "Running MCP Test Client..."
     log "Executing: python -u ./mcp_server/mcp_test_client.py"

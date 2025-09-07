@@ -55,6 +55,8 @@ COPY ../secure_mcp/server.py ./mcp_server/server.py
 COPY ../secure_mcp/store.py ./mcp_server/store.py
 COPY ../secure_mcp/test_mcp_client.py ./mcp_server/test_mcp_client.py
 COPY ../secure_mcp/mcp_healthcheck.py ./mcp_server/mcp_healthcheck.py
+COPY ../secure_mcp/test_server.py ./mcp_server/test_server.py
+COPY ../secure_mcp/test_server.sh ./mcp_server/test_server.sh
 
 COPY ../litellm/litellm-config.yaml ./litellm-config.yaml
 

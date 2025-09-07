@@ -6,14 +6,18 @@ MCP Streamable HTTP Client - Upgraded to follow official MCP library pattern
 import argparse
 import asyncio
 import json
-from math import exp
-from sys import prefix
 from typing import Optional
 from contextlib import AsyncExitStack
 import random
 import string
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
+
+
+# Hard-coded test Bearer token for Authorization header
+# just to make sure a Bearer token is picked up an logged by mcp server
+# this allows us to test the litellm if forwarding Auth headers
+TEST_BEARER_TOKEN = "sk-test-123"
 
 
 class MCPClient:
@@ -185,7 +189,7 @@ class MCPClient:
                 "message"] == expect_status, f"Expected '{expect_status}', got {missing_data['message']}"
             print("✓ Non-existent key test passed")
 
-            print("\n All tests passed successfully!")
+            print("\nAll tests passed successfully!")
 
         except AssertionError as e:
             print(f"\nTest failed: {e}")
@@ -205,7 +209,8 @@ class MCPClient:
 async def health_check(client, server_url):
     """Run a quick health check for Docker health monitoring"""
     try:
-        await client.connect_to_streamable_http_server(server_url)
+        headers = {"Authorization": f"Bearer {TEST_BEARER_TOKEN}"} if TEST_BEARER_TOKEN else {}
+        await client.connect_to_streamable_http_server(server_url, headers=headers)
 
         # Quick test: just list tools to verify server is responding
         tools_response = await client.list_tools()
@@ -273,7 +278,8 @@ async def main():
         else:
             # Normal test mode
             print(f"Connecting to MCP server at {args.server_url}...")
-            await client.connect_to_streamable_http_server(args.server_url)
+            headers = {"Authorization": f"Bearer {TEST_BEARER_TOKEN}"} if TEST_BEARER_TOKEN else {}
+            await client.connect_to_streamable_http_server(args.server_url, headers=headers)
             print("Connected successfully!")
 
             await client.run_tests()

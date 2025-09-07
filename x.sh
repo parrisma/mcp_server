@@ -113,3 +113,10 @@ clear;curl -X POST "http://localhost:9000/mcp-rest/tools/call/secure_datagroup-p
       "group": "people"
     }
   }'
+
+ clear;curl -X POST "http://localhost:9123/mcp-rest/tools/call/secure_datagroup-test" \
+  -H "Authorization: Bearer MarkParris3142" \
+  -H "Content-Type: application/json" \
+  }'
+
+  

@@ -1,16 +1,6 @@
 # LiteLLM Configuration for MCP Proxy with OAuth Support
 
 model_list:
-  - model_name: "gpt-5"
-    litellm_params:
-      model: "openrouter/openai/gpt-5"
-      api_key: "sk-or-<REDACTED>"
-      api_base: "https://openrouter.ai/api/v1"
-  - model_name: "gpt-5 Mini"
-    litellm_params:
-      model: "openrouter/openai/gpt-5-mini"
-      api_key: "sk-or-<REDACTED>"
-      api_base: "https://openrouter.ai/api/v1"
   - model_name: "claude-3-5-sonnet"
     litellm_params:
       model: "openrouter/anthropic/claude-3.5-sonnet"
@@ -23,10 +13,10 @@ model_list:
       api_base: "https://openrouter.ai/api/v1"
 
 mcp_servers:
-  secure_datagroup:
+  securedata:
     url: "http://python-mcp:9123/mcp/"
     transport: "http"
-    auth_type: "none"
+    auth_type: "bearer_token"
     spec_version: "2025-03-26"
     access_groups: ["mcp_group"]
 

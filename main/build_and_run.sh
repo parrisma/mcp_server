@@ -13,7 +13,11 @@ else
     exit 1
 fi
 
-ensure_stack_removed "openwebui_stack"
+ensure_stack_removed "openwebui"
+ensure_stack_removed "litellm"
+ensure_stack_removed "mcp"
+ensure_stack_removed "keycloak"
+ensure_stack_removed "vault"
 
 ensure_network_removed "home-net"
 ensure_network_removed "proxy"
@@ -25,4 +29,9 @@ cleanup_exited_containers
 
 build_and_verify_image "${SCRIPT_DIR}/Dockerfile" "python-mcp" "latest" "${ROOT_DIR}"
 
-deploy_and_verify_stack openwebui_stack "$ROOT_DIR/swarm/simple-oauth-dev-stack.yml" 300
+deploy_and_verify_stack vault "$ROOT_DIR/swarm/vault.yml" 300
+deploy_and_verify_stack keycloak "$ROOT_DIR/swarm/keycloak.yml" 300
+deploy_and_verify_stack keycloak "$ROOT_DIR/swarm/mcp_server.yml" 300
+deploy_and_verify_stack keycloak "$ROOT_DIR/swarm/litellm.yml" 300
+deploy_and_verify_stack keycloak "$ROOT_DIR/swarm/openwebui.yml" 300
+
